@@ -1,0 +1,80 @@
+Sockets
+Definition: A socket is one endpoint of a two-way 
+communication link between two programs working on
+a network, defined by the combination of IP addr and 
+port #.
+ex: 192.168.1.1:80 is a socket with IP: 192.168.1.1 and
+port #:80.
+
+The steps to establish a socket on the client side are as follows:
+1. Create a socket with the socket() function call
+2. Connect the socket to the address of the server using connect() system call
+3. Send and receive data. There's many ways to do this but we will likely be using
+read() and write() primarily. (and maybe in the future defining some for enc)
+
+Server side, creating a socket goes as follows
+1. Create a Socket with the socket() system call
+2. Bind the socket to an address using bind() system call.
+3. Listen for connetions with the listen() system call.
+4. Accept a connection using accept() system call.
+5. send and receive data.
+
+socket: creates a socket both client and server side (must be called from both ends for
+communication)
+bind: binds a socket to an ip address and port number. For a chat app this would be
+the server binding a client ip address and port number to a socket opened by the server
+for which the server and client to communicate.
+listen: This basically makes the server listen for connections from the socket once the socket
+has been created and binded to the desired socket.
+accept: accepts a connection discovered by listen as described above.
+recv: the function with which the server/client receives data implemented in a loop if 
+implementing a stream socket application like a chat-app
+send: the function with which the server and client send data kinda like the opposite
+of recv.
+
+socket() asks the OS to create a communication endpoint that can 
+send/receive data over a network protocol (socket != connection)
+
+bind() tells the OS which IP/port THIS server will listen on.
+
+listen() converts a bound socket into a listening socket meaning the
+OS should queue incoming connection requests for this socket.
+
+accept() creates a NEW socket representing one client connection.
+So after accept() we have:
+listening_socket -> keeps waiting for clients.
+client_socket -> used to talk to that specific client.
+
+recv() reads bytes from the client socket into a buffer.
+send() writes bytes to the socket so they are transmitted to the
+remote side.
+
+Socket Options
+Definition: Socket options are configured using the POSIX
+setsockopt() and getsockopt() system calls which allow control
+over socket behavior at different protocol levels(?).
+
+SO_REUSEADDR: Allows the reuse of local addresses during bind(), which 
+is useful for quickly restarting a server that might otherwise have an
+address still allocated to a previous instance.
+
+what SO_REUSEADDR is really doing:
+when you close a TCP server, the OS doesn't immediately free the port
+TCP connections go through a lifecycle so if you close a connection,
+the socket may stay in a state called TIME_WAIT
+This exists to prevent old packets from interfering with new connections.
+the OS is more or less saying:
+"I'll be holding onto this port for a bit just in case delayed packets show"
+this may be 1-4 min process depending on the OS.
+
+so considering this workflow
+1. start server
+2. connect with nc
+3. stop server with Ctrl+C
+4. immediate restart server
+
+without SO_REUSEADDR, the OS might say:
+bind: Address already in use
+but since we are implementing SO_REUSEADDR, we can bind to this port
+even if there are sockets still in TIME_WAIT.
+
