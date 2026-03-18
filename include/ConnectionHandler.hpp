@@ -10,10 +10,13 @@ public:
     std::string getClientLabel() const;
     int getSocket() const;
     void setClientLabel(std::string newNick);
+    std::string getCurrentRoom();
+    void changeRoom(std::string& new_room);
 
 private:
     int clientSocket;
     std::string clientLabel;
+    std::string currentRoom;
 };
 
 #endif

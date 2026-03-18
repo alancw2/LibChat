@@ -5,7 +5,7 @@
 #include <iostream>
 
 ConnectionHandler::ConnectionHandler(int clientSocket, const std::string& clientLabel)
-    : clientSocket(clientSocket), clientLabel(clientLabel) {}
+    : clientSocket(clientSocket), clientLabel(clientLabel), currentRoom("lobby") {}
 
 void ConnectionHandler::sendMessage(std::string& message) {
     const char* data = message.c_str();
@@ -22,6 +22,12 @@ void ConnectionHandler::sendMessage(std::string& message) {
 }
 void ConnectionHandler::setClientLabel(std::string newNick) {
     clientLabel = newNick;
+}
+void ConnectionHandler::changeRoom(std::string& new_room) {
+    currentRoom = new_room;
+}
+std::string ConnectionHandler::getCurrentRoom() {
+    return currentRoom;
 }
 int ConnectionHandler::getSocket() const {
     return clientSocket;

@@ -35,6 +35,17 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
             }
             continue;
         }
+        if (rawContent.starts_with("/join ")) {
+            std::string newRoom = rawContent.substr(6);
+            newRoom.erase(std::remove(newRoom.begin(), newRoom.end(), '\n'), newRoom.end());
+            newRoom.erase(std::remove(newRoom.begin(), newRoom.end(), '\r'), newRoom.end());
+            newRoom.erase(newRoom.find_last_not_of(" ") + 1);
+            if (!newRoom.empty()) {
+                std::cout << conn->getClientLabel() << " moved to room: " << newRoom << std::endl;
+                conn->changeRoom(newRoom);
+            }
+            continue;
+        }
         if (bytes == -1) {
             std::cerr << std::format("receiving data with recv failed from {}", clientSocket) << std::endl;
             break;
@@ -50,6 +61,7 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
         {
             std::scoped_lock lock(connectionsMutex);
             for (const auto& connection : connections) {
+                if (connection->getCurrentRoom() == conn->getCurrentRoom())
                 connection->sendMessage(message);
             }
         }
@@ -102,6 +114,7 @@ int main() {
 
     //binding the socket to address and port.
     if (bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1) {
+        perror("bind");
         std::cerr << "socket binding failed" << std::endl;
         return 1;
     }
