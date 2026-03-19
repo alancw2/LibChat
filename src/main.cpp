@@ -35,6 +35,13 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
         if (rawContent.starts_with("/nick ")) {
             std::string newNick = rawContent.substr(6);
             const std::string& message = std::format("{} has changed their nickname to {}", conn->getClientLabel(), newNick);
+
+            if (newNick == "") {
+                const std::string& nick_failed = "nickname change has failed \n";
+                conn->sendMessage(nick_failed);
+                continue;
+            }         
+            //const std::string& message = std::format("{} has changed their nickname to {}", conn->getClientLabel(), newNick);
             //std::string& m = message;
             broadcastMessage(conn, connections, connectionsMutex, message);
             Commands::setNewNickname(conn, newNick);
@@ -51,7 +58,8 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
             continue;
         }
         if (rawContent.starts_with("/who")) {
-            broadcastMessage(conn, connections, connectionsMutex, Commands::getUsersInRoom(conn, connections));
+            conn->sendMessage(Commands::getUsersInRoom(conn, connections));
+            //broadcastMessage(conn, connections, connectionsMutex, Commands::getUsersInRoom(conn, connections));
             continue;
         }
         if (bytes == -1) {
@@ -133,7 +141,6 @@ int main() {
     }
     while (true) {
 
-    //accept client connection
     sockaddr_in clientAddress;
     socklen_t clientSize = sizeof(clientAddress);
     int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress, &clientSize);
@@ -158,7 +165,6 @@ int main() {
     if (client_thread.joinable()) {
         client_thread.detach();
     }
-    //handleClient(clientSocket);
     }
     close(serverSocket);   
     return 0;
