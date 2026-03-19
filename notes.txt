@@ -97,6 +97,26 @@ Server/shared state:
         register connection
         unregister connection
         broadcast message to all connections
+    Now that nickname is implemented, I need to implement Single-room membership per client
+    basically it would support
+    /join general
+    /join math
+    /join gaming
+
+done with this stuff
+Features:
+Current:
+-concurrent TCP chat server
+-/nick 
+-/join
+-multiple rooms
+-command logic extracted
+
+Next:
+-/who (prints people in current room)
+-system join/leave messages
+-improve parsing / cleanup
+
 
 
 

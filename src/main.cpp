@@ -14,6 +14,15 @@
 #include <vector>
 
 
+void broadcastMessage(std::shared_ptr<ConnectionHandler> conn, std::vector<std::shared_ptr<ConnectionHandler>>& connections, std::mutex& connectionsMutex, const std::string& message) {
+    {
+            std::scoped_lock lock(connectionsMutex);
+            for (const auto& connection : connections) {
+                if (connection->getCurrentRoom() == conn->getCurrentRoom())
+                connection->sendMessage(std::format("{}\n", message));
+            }
+    }
+}
 void handleClient(std::shared_ptr<ConnectionHandler> conn,
                   std::vector<std::shared_ptr<ConnectionHandler>>& connections,
                   std::mutex& connectionsMutex) {
@@ -25,12 +34,20 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
         std::string rawContent(buffer, bytes);
         if (rawContent.starts_with("/nick ")) {
             std::string newNick = rawContent.substr(6);
+            const std::string& message = std::format("{} has changed their nickname to {}", conn->getClientLabel(), newNick);
+            //std::string& m = message;
+            broadcastMessage(conn, connections, connectionsMutex, message);
             Commands::setNewNickname(conn, newNick);
+            //std::string& message = std::ref(std::format(""))
             continue;
         }
         if (rawContent.starts_with("/join ")) {
             std::string newRoom = rawContent.substr(6);
+            const std::string& move_message = std::format("{} has moved to room {}", conn->getClientLabel(), newRoom);
+            broadcastMessage(conn, connections, connectionsMutex, move_message);
             Commands::joinNewRoom(conn, newRoom);
+            const std::string& enter_message = std::format("{} has entered room {}", conn->getClientLabel(), newRoom);
+            broadcastMessage(conn, connections, connectionsMutex, enter_message);
             continue;
         }
         if (bytes == -1) {
@@ -45,13 +62,7 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
 
         std::string message = conn->getClientLabel() + ": " + std::string(buffer, bytes);
 
-        {
-            std::scoped_lock lock(connectionsMutex);
-            for (const auto& connection : connections) {
-                if (connection->getCurrentRoom() == conn->getCurrentRoom())
-                connection->sendMessage(message);
-            }
-        }
+        broadcastMessage(conn, connections, connectionsMutex, message);
     }
 
     {

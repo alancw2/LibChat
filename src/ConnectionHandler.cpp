@@ -7,7 +7,7 @@
 ConnectionHandler::ConnectionHandler(int clientSocket, const std::string& clientLabel)
     : clientSocket(clientSocket), clientLabel(clientLabel), currentRoom("lobby") {}
 
-void ConnectionHandler::sendMessage(std::string& message) {
+void ConnectionHandler::sendMessage(const std::string& message) {
     const char* data = message.c_str();
     size_t totalSent = 0;
     size_t messageLength = message.size();
