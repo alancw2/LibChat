@@ -1,6 +1,8 @@
 #include "../../include/Commands.hpp"
 #include "../../include/ConnectionHandler.hpp"
 #include <iostream>
+#include <regex>
+
 void Commands::joinNewRoom(std::shared_ptr<ConnectionHandler> conn, std::string& newRoom) {
     newRoom.erase(std::remove(newRoom.begin(), newRoom.end(), '\n'), newRoom.end());
     newRoom.erase(std::remove(newRoom.begin(), newRoom.end(), '\r'), newRoom.end());
@@ -11,15 +13,12 @@ void Commands::joinNewRoom(std::shared_ptr<ConnectionHandler> conn, std::string&
     }
 }
 void Commands::setNewNickname(std::shared_ptr<ConnectionHandler> conn, std::string& newNick) {
-    newNick.erase(std::remove(newNick.begin(), newNick.end(), '\n'), newNick.end());
-    newNick.erase(std::remove(newNick.begin(), newNick.end(), '\r'), newNick.end());
-    newNick.erase(newNick.find_last_not_of(" ") + 1);
-    if (!newNick.empty()) {
-        conn->setClientLabel(newNick);
-    } else {
-        std::cerr << "1 - nickname change fail (bad nickname)" << std::endl;
-        return;
-    }
+	if (std::regex_match(newNick, Config::APP_NICKNAME_PATTERN)) {
+		conn->setClientLabel(newNick);
+	} else {
+		std::cerr << "1 - nickname change fail (bad nickname)" << std::endl;
+		conn->sendMessage("1 - nickname change fail (bad nickname)");
+	}
 } 
 std::string Commands::getUsersInRoom(std::shared_ptr<ConnectionHandler> conn, std::vector<std::shared_ptr<ConnectionHandler>>& connections) {
     std::string users = "";
