@@ -1,7 +1,6 @@
 #include "../../include/Commands.hpp"
 #include "../../include/ConnectionHandler.hpp"
 
-#include <algorithm>
 
 void Commands::joinNewRoom(std::shared_ptr<ConnectionHandler> conn, std::string& newRoom) {
     newRoom.erase(std::remove(newRoom.begin(), newRoom.end(), '\n'), newRoom.end());
@@ -20,3 +19,14 @@ void Commands::setNewNickname(std::shared_ptr<ConnectionHandler> conn, std::stri
         conn->setClientLabel(newNick);
     }
 } 
+std::string Commands::getUsersInRoom(std::shared_ptr<ConnectionHandler> conn, std::vector<std::shared_ptr<ConnectionHandler>>& connections) {
+    std::string users = "";
+    for (const auto& connection : connections) {
+        if (connection->getCurrentRoom() == conn->getCurrentRoom()) {
+            users += connection->getClientLabel();
+            users += '\n';
+        }
+    }
+    return users;
+    
+}

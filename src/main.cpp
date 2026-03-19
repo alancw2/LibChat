@@ -27,9 +27,9 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
                   std::vector<std::shared_ptr<ConnectionHandler>>& connections,
                   std::mutex& connectionsMutex) {
     int clientSocket = conn->getSocket();
-
+    char buffer[1024] = {0};
     while (true) {
-        char buffer[1024] = {0};
+        //char buffer[1024] = {0};
         int bytes = recv(clientSocket, buffer, sizeof(buffer), 0);
         std::string rawContent(buffer, bytes);
         if (rawContent.starts_with("/nick ")) {
@@ -48,6 +48,10 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
             Commands::joinNewRoom(conn, newRoom);
             const std::string& enter_message = std::format("{} has entered room {}", conn->getClientLabel(), newRoom);
             broadcastMessage(conn, connections, connectionsMutex, enter_message);
+            continue;
+        }
+        if (rawContent.starts_with("/who")) {
+            broadcastMessage(conn, connections, connectionsMutex, Commands::getUsersInRoom(conn, connections));
             continue;
         }
         if (bytes == -1) {

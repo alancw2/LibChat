@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "../include/Commands.hpp"
 
 void receive_messages(int clientSocket) {
     char buffer[1024];
@@ -54,6 +55,9 @@ int main() {
         std::cout << "> " << std::flush;
         if (!std::getline(std::cin, input) || input == "/quit") {
             break;
+        }
+        if (input == "/who") {
+
         }
 
         if (input.empty()) continue;
