@@ -19,7 +19,7 @@ make run_client
 
 # Remark
 - If you are trying to run the program and it says the address is already in use run:
-```` sh
+``` sh
 ss -ltnp | grep 8080
 ```
 and kill whatever process is using the address with 
