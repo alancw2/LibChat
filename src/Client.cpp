@@ -44,9 +44,8 @@ int main() {
     }
 
     std::cout << "--- Connected to Chat Server ---" << std::endl;
-    std::cout << "Commands: /nick <name>, /join <room>, or /quit to exit." << std::endl;
+    std::cout << "Commands: /nick <name>, /join <room>, /rooms to list active rooms, or /quit to exit." << std::endl;
 
-    // Fixed: The function name here must match 'receive_messages' above
     std::thread receiveThread(receive_messages, sock);
     receiveThread.detach();
 
@@ -55,9 +54,6 @@ int main() {
         std::cout << "> " << std::flush;
         if (!std::getline(std::cin, input) || input == "/quit") {
             break;
-        }
-        if (input == "/who") {
-
         }
 
         if (input.empty()) continue;

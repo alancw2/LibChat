@@ -4,6 +4,7 @@
 #include <iostream>
 #include <format>
 #include <regex>
+#include <set>
 
 void Commands::joinNewRoom(std::shared_ptr<ConnectionHandler> conn, std::string& newRoom) {
     newRoom.erase(std::remove(newRoom.begin(), newRoom.end(), '\n'), newRoom.end());
@@ -42,3 +43,14 @@ bool Commands::nickAvailable(std::vector<std::shared_ptr<ConnectionHandler>>& co
     }
     return true;
 }
+void Commands::showRooms(std::shared_ptr<ConnectionHandler> conn, std::vector<std::shared_ptr<ConnectionHandler>>& connections) {
+	std::set<std::string> rooms;
+	for (const auto& connection: connections) {
+		rooms.insert(connection->getCurrentRoom() + "\n");
+	}
+	conn->sendMessage("active rooms: \n");
+	for (std::string room : rooms) {
+		conn->sendMessage(room);
+	}
+}
+
