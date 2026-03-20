@@ -66,6 +66,10 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
             conn->sendMessage(Commands::getUsersInRoom(conn, connections));
             continue;
         }
+        if (rawContent.starts_with("/rooms")) {
+            Commands::showRooms(conn, connections);
+            continue;
+        }
         if (bytes == -1) {
             std::cerr << std::format("receiving data with recv failed from {}", clientSocket) << std::endl;
             break;
