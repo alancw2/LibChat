@@ -1,4 +1,4 @@
-# Chat App (C++)
+# Spkbl (C++)
 
 This is a project inspired by my original Chat App which you can see [here.](https://github.com/alancw2/chat-app)
 
