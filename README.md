@@ -44,3 +44,8 @@ and kill whatever process is using the address with
 ``` sh
 kill <PID>
 ```
+
+## Author
+**Alan Ward**\
+UIUC Mathematics \
+Github: https://github.com/alancw2/TutorOps 
