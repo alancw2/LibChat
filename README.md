@@ -32,8 +32,8 @@ make run_client
 
 ```
 # Notes
-- I am current working on compatibility issues on MacOS, this project was built on and for Linux systems and hasn't been attempted to be ran on windows as of yet (3/20/2026).
-- "/help" functionality is still a work in progress.
+- LibChat is built on and for UNIX systems, WSL likely works however it has not been debugged by contributors thus far.
+- LibChat has a TUI in progress that can be seen and messed around with by checking out the "basic-ui" branch.
 
 # Remark
 - If you are trying to run the program and it says the address is already in use run:
