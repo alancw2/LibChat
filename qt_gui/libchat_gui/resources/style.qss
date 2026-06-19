@@ -1,0 +1,430 @@
+/* ═══════════════════════════════════════════════════════════════════
+   LibChat — Signal / WhatsApp inspired dark theme
+   ═══════════════════════════════════════════════════════════════════ */
+
+* {
+    font-family: "Segoe UI", "Noto Sans", "Liberation Sans", Arial, sans-serif;
+}
+
+QMainWindow, #centralWidget {
+    background: #1b1c1f;
+    color: #e8e8e8;
+}
+
+/* ── Scrollbars ─────────────────────────────────────────────────── */
+QScrollBar:vertical {
+    background: transparent;
+    width: 5px;
+}
+QScrollBar::handle:vertical {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    min-height: 24px;
+}
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical { background: transparent; }
+QScrollBar:horizontal { height: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LEFT SIDEBAR
+   ═══════════════════════════════════════════════════════════════════ */
+#sidebar {
+    background: #1b1c1f;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* App header row */
+#sidebarHeader {
+    background: #1b1c1f;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#appNameLabel {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+/* Connection dot */
+#connDotOn  { color: #4dde80; font-size: 9px; }
+#connDotOff { color: #6e6e73; font-size: 9px; }
+
+/* Search bar */
+#searchFrame {
+    background: #1b1c1f;
+    padding: 0 4px;
+}
+#searchInput {
+    background: #2d2f31;
+    border: none;
+    border-radius: 18px;
+    color: #aaaaaa;
+    font-size: 13px;
+    padding: 7px 14px;
+    selection-background-color: #2c6bed;
+}
+#searchInput:focus {
+    color: #e8e8e8;
+    background: #38393d;
+    border: none;
+}
+
+/* Section labels */
+#sectionLabel {
+    color: #6e6e73;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    background: transparent;
+}
+
+/* Room list */
+#roomList {
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0 6px;
+}
+#roomList::item {
+    height: 44px;
+    border-radius: 8px;
+    color: #aaaaaa;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 0 10px;
+}
+#roomList::item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e8e8e8;
+}
+#roomList::item:selected {
+    background: rgba(44, 107, 237, 0.22);
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Sidebar action button */
+#sidebarActionButton {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #6e6e73;
+    font-size: 13px;
+    padding: 6px 12px;
+    margin: 4px 10px;
+    text-align: left;
+}
+#sidebarActionButton:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e8e8e8;
+}
+
+/* Bottom user strip */
+#userStrip {
+    background: #141517;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+#avatarLabel {
+    background: #2c6bed;
+    border-radius: 18px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+}
+#selfNickLabel {
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+}
+#selfRoomLabel {
+    color: #6e6e73;
+    font-size: 12px;
+    background: transparent;
+}
+
+/* Icon / small buttons */
+#iconButton {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #6e6e73;
+    font-size: 15px;
+    padding: 0;
+}
+#iconButton:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e8e8e8;
+}
+#iconButton:pressed {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHAT AREA
+   ═══════════════════════════════════════════════════════════════════ */
+#chatArea {
+    background: #0f1012;
+}
+
+/* Chat header */
+#chatHeader {
+    background: #1b1c1f;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+#hashLabel {
+    color: #6e6e73;
+    font-size: 18px;
+    font-weight: 700;
+    background: transparent;
+}
+#headerRoomLabel {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    background: transparent;
+}
+#headerSubLabel {
+    color: #6e6e73;
+    font-size: 12px;
+    background: transparent;
+}
+#headerIconButton {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #6e6e73;
+    font-size: 16px;
+}
+#headerIconButton:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e8e8e8;
+}
+
+/* Scroll area and its content */
+#chatScroll, #chatContent {
+    background: #0f1012;
+    border: none;
+}
+QScrollArea {
+    background: #0f1012;
+    border: none;
+}
+
+/* ── Input area ─────────────────────────────────────────────────── */
+#inputArea {
+    background: #1b1c1f;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Rounded pill that holds the text input */
+#inputFrame {
+    background: #2d2f31;
+    border-radius: 22px;
+    border: none;
+}
+
+#messageInput {
+    background: transparent;
+    border: none;
+    color: #e8e8e8;
+    font-size: 15px;
+    padding: 10px 16px;
+    selection-background-color: #2c6bed;
+}
+
+/* Send button — circular */
+#sendButton {
+    background: #2c6bed;
+    border: none;
+    border-radius: 20px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 0;
+}
+#sendButton:hover  { background: #1d5fd8; }
+#sendButton:pressed { background: #1550be; }
+#sendButton:disabled {
+    background: #2d2f31;
+    color: #555;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MEMBER PANEL
+   ═══════════════════════════════════════════════════════════════════ */
+#memberPanel {
+    background: #1b1c1f;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+#memberPanelHeader {
+    background: #1b1c1f;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+#memberList {
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 4px 8px;
+}
+#memberList::item {
+    height: 44px;
+    border-radius: 8px;
+    color: #aaaaaa;
+    font-size: 14px;
+    padding: 0 10px;
+}
+#memberList::item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e8e8e8;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATUS BAR
+   ═══════════════════════════════════════════════════════════════════ */
+QStatusBar {
+    background: #141517;
+    color: #6e6e73;
+    font-size: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SETTINGS DIALOG
+   ═══════════════════════════════════════════════════════════════════ */
+QDialog {
+    background: #1b1c1f;
+    color: #e8e8e8;
+}
+
+QTabWidget::pane {
+    background: #1b1c1f;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+QTabBar {
+    background: #141517;
+}
+QTabBar::tab {
+    background: #141517;
+    color: #6e6e73;
+    padding: 11px 22px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 14px;
+}
+QTabBar::tab:selected {
+    color: #ffffff;
+    border-bottom: 2px solid #2c6bed;
+    background: #1b1c1f;
+}
+QTabBar::tab:hover:!selected {
+    color: #aaaaaa;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+QLabel {
+    color: #aaaaaa;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    background: transparent;
+}
+#hintLabel {
+    color: #6e6e73;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+QLineEdit, #settingsInput {
+    background: #2d2f31;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #e8e8e8;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 9px 12px;
+    selection-background-color: #2c6bed;
+}
+QLineEdit:focus, #settingsInput:focus {
+    border-color: #2c6bed;
+}
+
+QSpinBox {
+    background: #2d2f31;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #e8e8e8;
+    font-size: 14px;
+    padding: 9px 12px;
+}
+QSpinBox:focus { border-color: #2c6bed; }
+QSpinBox::up-button, QSpinBox::down-button {
+    background: #38393d;
+    border: none;
+    width: 20px;
+    border-radius: 4px;
+}
+QSpinBox::up-button:hover,
+QSpinBox::down-button:hover { background: #4a4b50; }
+
+#primaryButton {
+    background: #2c6bed;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 20px;
+}
+#primaryButton:hover  { background: #1d5fd8; }
+#primaryButton:pressed { background: #1550be; }
+#primaryButton:disabled { background: #2d2f31; color: #555; }
+
+#dangerButton {
+    background: #c0392b;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 20px;
+}
+#dangerButton:hover  { background: #a93226; }
+#dangerButton:pressed { background: #922b21; }
+
+QPushButton {
+    background: #2d2f31;
+    border: none;
+    border-radius: 8px;
+    color: #e8e8e8;
+    font-size: 14px;
+    padding: 9px 18px;
+}
+QPushButton:hover  { background: #38393d; }
+QPushButton:pressed { background: #4a4b50; }
+
+QDialogButtonBox QPushButton { min-width: 80px; }
+
+/* Status text in connection tab */
+#connectedStatus    { color: #4dde80; font-size: 14px; font-weight: 600; }
+#disconnectedStatus { color: #e74c3c; font-size: 14px; font-weight: 600; }
+
+/* Input dialog */
+QInputDialog { background: #1b1c1f; }
+QInputDialog QLabel {
+    color: #e8e8e8;
+    font-size: 14px;
+    font-weight: 400;
+}
+QInputDialog QLineEdit {
+    background: #2d2f31;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #e8e8e8;
+    padding: 9px 12px;
+    font-size: 14px;
+}

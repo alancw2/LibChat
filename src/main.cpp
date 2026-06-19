@@ -37,6 +37,15 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
         std::string rawContent(buffer, bytes);
         if (rawContent.starts_with("/nick ")) {
             std::string newNick = rawContent.substr(6);
+            // The raw buffer includes the terminating '\n' (and possibly '\r').
+            // Strip \r first, then truncate at the first '\n' so that batched
+            // recv data doesn't bleed into the nickname string.
+            newNick.erase(std::remove(newNick.begin(), newNick.end(), '\r'), newNick.end());
+            auto nl = newNick.find('\n');
+            if (nl != std::string::npos)
+                newNick.erase(nl);
+            if (!newNick.empty())
+                newNick.erase(newNick.find_last_not_of(' ') + 1);
             if (Commands::nickAvailable(connections, newNick)) {
                 const std::string& message = std::format("{} has changed their nickname to {}", conn->getClientLabel(), newNick);
                 Commands::setNewNickname(conn, newNick);

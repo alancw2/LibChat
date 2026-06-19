@@ -1,1 +1,39 @@
-*.txt
+# ── Build directories ───────────────────────────────────────────────
+build/
+*/build/
+
+# ── Compiled objects and binaries ───────────────────────────────────
+*.o
+*.a
+*.so
+*.so.*
+server
+client
+client_tui
+
+# ── Qt generated / user-local files ─────────────────────────────────
+*.pro.user
+*.pro.user.*
+.qmake.stash
+.qmake.cache
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# ── CMake generated files ────────────────────────────────────────────
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+install_manifest.txt
+_deps/
+
+# ── Editor / OS ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
