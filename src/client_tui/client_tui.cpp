@@ -4,7 +4,6 @@
 #include <ftxui/dom/elements.hpp>
 #include <sys/socket.h>
 #include <unistd.h>
-
 #include <algorithm>
 #include <atomic>
 #include <cstring>
@@ -13,6 +12,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <limits>
 
 using namespace ftxui;
 
@@ -126,29 +126,40 @@ Element RenderMessage(const ChatMessage& message) {
 }  // namespace
 
 int main() {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
-        perror("Socket creation failed");
-        return 1;
-    }
+    auto connect_to_server = [](const std::string& ip, int& sock) -> bool {
+        int newsock = socket(AF_INET, SOCK_STREAM, 0);
+        if (newsock == -1) {
+            perror("Socket creation failed");
+            return false;
+        }
 
+        sockaddr_in server_address{};
+        server_address.sin_family = AF_INET;
+        server_address.sin_port = htons(8080);
+
+        if (inet_pton(AF_INET, ip.c_str(), &server_address.sin_addr) != 1) {
+            std::cerr << "Invalid IP address.\n";
+            close(newsock);
+            return false;
+        }
+
+        if (connect(newsock, reinterpret_cast<sockaddr*>(&server_address), sizeof(server_address)) == -1) {
+            perror("Connect failed");
+            close(newsock);
+            return false;
+        }
+
+        sock = newsock;
+        return true;
+    };
+
+    int sock = -1;
     std::string server_ip;
     std::cout << "Enter the IP address of the chat-server: ";
     std::cin >> server_ip;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    sockaddr_in server_address{};
-    server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(8080);
-
-    if (inet_pton(AF_INET, server_ip.c_str(), &server_address.sin_addr) != 1) {
-        std::cerr << "Invalid IP address.\n";
-        close(sock);
-        return 1;
-    }
-
-    if (connect(sock, reinterpret_cast<sockaddr*>(&server_address), sizeof(server_address)) == -1) {
-        perror("Connect failed");
-        close(sock);
+    if (!connect_to_server(server_ip, sock)) {
         return 1;
     }
 
@@ -156,7 +167,9 @@ int main() {
 
     std::vector<ChatMessage> messages{
         {"--- Connected to Chat Server ---", true},
-        {"Commands: /help, /nick <name>, /join <room>, /rooms, /quit", true},
+        {"[Connected to " + server_ip + "]", true},
+        {"Commands: /help, /nick <name>, /join <room>, /rooms, /connect <ip>, /disconnect, /quit", true},
+        {"Type /nick <name> to set your name, /join <room> to switch rooms, or start chatting.", true},
     };
     std::mutex messages_mutex;
 
@@ -168,8 +181,63 @@ int main() {
     Box transcript_box;
     FocusTarget focus_target = FocusTarget::Input;
 
+    auto stop_connection = [&](std::thread& recv_thread) {
+        running = false;
+        if (sock != -1) {
+            shutdown(sock, SHUT_RDWR);
+            close(sock);
+            sock = -1;
+        }
+        if (recv_thread.joinable()) {
+            recv_thread.join();
+        }
+        connected = false;
+    };
+
+    auto start_receiver = [&](std::thread& recv_thread) {
+        running = true;
+        connected = true;
+        if (recv_thread.joinable()) {
+            recv_thread.join();
+        }
+        recv_thread = std::thread([&] {
+            char buffer[1024];
+
+            while (running) {
+                std::memset(buffer, 0, sizeof(buffer));
+                const int bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
+
+                if (bytes > 0) {
+                    {
+                        std::lock_guard<std::mutex> lock(messages_mutex);
+                        AppendMessage(messages, {std::string(buffer, bytes), false}, scroll_index, follow_latest);
+                    }
+                    screen.PostEvent(Event::Custom);
+                    continue;
+                }
+
+                connected = false;
+
+                {
+                    std::lock_guard<std::mutex> lock(messages_mutex);
+                    if (bytes == 0) {
+                        AppendMessage(messages, {"[Server closed connection]", true}, scroll_index, follow_latest);
+                    } else if (running) {
+                        AppendMessage(messages, {"[Receive error / disconnected]", true}, scroll_index, follow_latest);
+                    }
+                }
+
+                screen.PostEvent(Event::Custom);
+                break;
+            }
+        });
+    };
+
     auto input_box = Input(&input, connected ? "Type a message..." : "Disconnected");
     input_box->TakeFocus();
+
+    std::thread receive_thread;
+    start_receiver(receive_thread);
 
     auto layout = Container::Vertical({
         input_box,
@@ -312,17 +380,73 @@ int main() {
                 screen.ExitLoopClosure()();
                 return true;
             }
+            if (input == "/disconnect") {
+                connected = false;
+                running = false;
+                shutdown(sock, SHUT_RDWR);
+                //screen.ExitLoopClosure()();
+                return true;
+            }
+             if (input == "/help") {
+                {
+                    std::lock_guard<std::mutex> lock(messages_mutex);
+                    AppendMessage(messages, {"Commands: /help, /nick <name>, /join <room>, /rooms, /quit", true}, scroll_index, follow_latest);
+                }
+                screen.PostEvent(Event::Custom);
+                return true;
+            }
+            if (input.starts_with("/connect ")) {
+                std::string new_ip = input.substr(9);
+                if (new_ip.empty()) {
+                    return true;
+                }
+                stop_connection(receive_thread);
+                if (connect_to_server(new_ip, sock)) {
+                    {
+                        std::lock_guard<std::mutex> lock(messages_mutex);
+                        AppendMessage(messages, {"[Connected to " + new_ip + "]", true}, scroll_index, follow_latest);
+                        AppendMessage(messages, {"Type /nick <name> to set your name, /join <room> to switch rooms, or start chatting.", true}, scroll_index, follow_latest);
+                    }
+                    start_receiver(receive_thread);
+                } else {
+                    {
+                        std::lock_guard<std::mutex> lock(messages_mutex);
+                        AppendMessage(messages, {"[Reconnect failed]", true}, scroll_index, follow_latest);
+                    }
+                }
+                input.clear();
+                screen.PostEvent(Event::Custom);
+                return true;
+            }
+            if (input == "/disconnect") {
+                stop_connection(receive_thread);
+                {
+                    std::lock_guard<std::mutex> lock(messages_mutex);
+                    AppendMessage(messages, {"Disconnected from server.", true}, scroll_index, follow_latest);
+                }
+                input.clear();
+                screen.PostEvent(Event::Custom);
+                return true;
+            }
 
             if (input.empty()) {
                 return true;
             }
 
+            if (sock == -1) {
+                std::lock_guard<std::mutex> lock(messages_mutex);
+                AppendMessage(messages, {"[Disconnected: unable to send message]", true}, scroll_index, follow_latest);
+                screen.PostEvent(Event::Custom);
+                return true;
+            }
+/*
             if (!connected) {
                 std::lock_guard<std::mutex> lock(messages_mutex);
                 AppendMessage(messages, {"[Disconnected: unable to send message]", true}, scroll_index, follow_latest);
                 screen.PostEvent(Event::Custom);
                 return true;
             }
+                */
 
             if (send(sock, input.c_str(), input.size(), 0) == -1) {
                 {
@@ -345,47 +469,8 @@ int main() {
         return false;
     });
 
-    std::thread receive_thread([&] {
-        char buffer[1024];
-
-        while (running) {
-            std::memset(buffer, 0, sizeof(buffer));
-            const int bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
-
-            if (bytes > 0) {
-                {
-                    std::lock_guard<std::mutex> lock(messages_mutex);
-                    AppendMessage(messages, {std::string(buffer, bytes), false}, scroll_index, follow_latest);
-                }
-                screen.PostEvent(Event::Custom);
-                continue;
-            }
-
-            connected = false;
-
-            {
-                std::lock_guard<std::mutex> lock(messages_mutex);
-                if (bytes == 0) {
-                    AppendMessage(messages, {"[Server closed connection]", true}, scroll_index, follow_latest);
-                } else if (running) {
-                    AppendMessage(messages, {"[Receive error / disconnected]", true}, scroll_index, follow_latest);
-                }
-            }
-
-            screen.PostEvent(Event::Custom);
-            break;
-        }
-    });
-
     screen.Loop(component);
 
-    running = false;
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-
-    if (receive_thread.joinable()) {
-        receive_thread.join();
-    }
-
+    stop_connection(receive_thread);
     return 0;
 }

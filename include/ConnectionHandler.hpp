@@ -12,6 +12,8 @@ public:
     void setClientLabel(std::string newNick);
     std::string getCurrentRoom();
     void changeRoom(std::string& new_room);
+    void changeServer(std::string serverIP);
+    void disconnect();
 
 private:
     int clientSocket;

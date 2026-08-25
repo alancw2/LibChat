@@ -46,14 +46,20 @@ bool Commands::nickAvailable(std::vector<std::shared_ptr<ConnectionHandler>>& co
 void Commands::showRooms(std::shared_ptr<ConnectionHandler> conn, std::vector<std::shared_ptr<ConnectionHandler>>& connections) {
 	std::set<std::string> rooms;
 	for (const auto& connection: connections) {
-		rooms.insert(connection->getCurrentRoom() + "\n");
+		rooms.insert(connection->getCurrentRoom());
 	}
-	conn->sendMessage("active rooms: \n");
-	for (std::string room : rooms) {
-    	conn->sendMessage(room);
+
+	conn->sendMessage("active rooms:\n");
+	for (const auto& room : rooms) {
+	    conn->sendMessage(room + "\n");
 	}
+}
+void Commands::changeServer(std::shared_ptr<ConnectionHandler> conn, std::string& newIP) {
+    conn->changeServer(newIP);
+}
+void Commands::disconnect(std::shared_ptr<ConnectionHandler> conn) {
+    conn->disconnect();
 }
 void Commands::showCommands(std::shared_ptr<ConnectionHandler> conn) {
     conn->sendMessage("Commands: /help to list all commands, /nick <name>, /join <room>, /rooms to list active rooms, or /quit to exit.\n");
 }
-

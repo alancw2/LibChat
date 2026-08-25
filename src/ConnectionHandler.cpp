@@ -3,9 +3,25 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
+#include <arpa/inet.h>
 
 ConnectionHandler::ConnectionHandler(int clientSocket, const std::string& clientLabel)
     : clientSocket(clientSocket), clientLabel(clientLabel), currentRoom("lobby") {}
+
+
+
+
+void ConnectionHandler::disconnect() {
+    if (clientSocket != -1) {
+        // Gracefully close the socket so the reader loop can exit cleanly
+        shutdown(clientSocket, SHUT_RDWR);
+        close(clientSocket);
+        clientSocket = -1;
+    }
+}
+
+
+    
 
 void ConnectionHandler::sendMessage(const std::string& message) {
     const char* data = message.c_str();
@@ -35,4 +51,11 @@ int ConnectionHandler::getSocket() const {
 
 std::string ConnectionHandler::getClientLabel() const {
     return clientLabel;
+}
+
+// On the server we cannot actually migrate a client to another server.
+// Instead, send a hint back so the client can reconnect itself.
+void ConnectionHandler::changeServer(std::string serverIP) {
+    std::string notice = "Server-side /connect is not supported. Use /connect from your client to reconnect to " + serverIP + "\n";
+    sendMessage(notice);
 }

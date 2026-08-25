@@ -15,6 +15,9 @@ namespace Commands {
     bool nickAvailable(std::vector<std::shared_ptr<ConnectionHandler>>& connections, const std::string& newNick);
     void showRooms(std::shared_ptr<ConnectionHandler> conn, std::vector<std::shared_ptr<ConnectionHandler>>& connections);
     void showCommands(std::shared_ptr<ConnectionHandler> conn);
+    void changeServer(std::shared_ptr<ConnectionHandler> conn, std::string& newIP);
+    void disconnect(std::shared_ptr<ConnectionHandler> conn);
+
 }
 
 

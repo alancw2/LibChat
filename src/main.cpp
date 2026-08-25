@@ -32,8 +32,18 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
     int clientSocket = conn->getSocket();
     char buffer[1024] = {0};
     while (true) {
-        //char buffer[1024] = {0};
         int bytes = recv(clientSocket, buffer, sizeof(buffer), 0);
+
+        if (bytes == -1) {
+            std::cerr << std::format("receiving data with recv failed from {}", clientSocket) << std::endl;
+            break;
+        }
+
+        if (bytes == 0) {
+            std::cout << std::format("client {} has disconnected", clientSocket) << std::endl;
+            break;
+        }
+
         std::string rawContent(buffer, bytes);
         if (rawContent.starts_with("/nick ")) {
             std::string newNick = rawContent.substr(6);
@@ -62,6 +72,12 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
             broadcastMessage(conn, connections, connectionsMutex, enter_message);
             continue;
         }
+        if (rawContent.starts_with("/disconnect")) {
+            const std::string& message = std::format("{} has disconnected", conn->getClientLabel());
+            broadcastMessage(conn, connections, connectionsMutex, message);
+            conn->disconnect();
+            break;
+        }
         if (rawContent.starts_with("/who")) {
             conn->sendMessage(Commands::getUsersInRoom(conn, connections));
             continue;
@@ -74,14 +90,9 @@ void handleClient(std::shared_ptr<ConnectionHandler> conn,
             Commands::showCommands(conn);
             continue;
         }
-        if (bytes == -1) {
-            std::cerr << std::format("receiving data with recv failed from {}", clientSocket) << std::endl;
-            break;
-        }
-
-        if (bytes == 0) {
-            std::cout << std::format("client {} has disconnected", clientSocket) << std::endl;
-            break;
+        if (rawContent.starts_with("/connect")) {
+            conn->sendMessage("Use /connect from the client to reconnect to another server.\n");
+            continue;
         }
 
         std::string message = conn->getClientLabel() + ": " + std::string(buffer, bytes);
@@ -104,7 +115,7 @@ std::string get_peer_ip_address(int client_socket_fd) {
     struct sockaddr_storage addr;
     socklen_t len = sizeof(addr);
     char ipstr[INET6_ADDRSTRLEN];
-    int port;
+    int port = 0;
     if (getpeername(client_socket_fd, (struct sockaddr*)&addr, &len) == -1) {
         perror("getpeername");
         return "";
