@@ -5,23 +5,54 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <ctime>
 #include "../include/Commands.hpp"
+#include "../include/Protocol.hpp"
+
+// Turns the server's /history reply lines into something readable;
+// every other line is printed as-is.
+std::string displayLine(const std::string& line) {
+    if (line.starts_with("~history-begin ")) {
+        // "~history-begin <more> <room>"
+        std::string rest = line.substr(15);
+        bool more = rest.starts_with("1");
+        std::string room = rest.size() > 2 ? rest.substr(2) : "";
+        return "── #" + room + (more ? " (most recent messages)" : "") + " ──";
+    }
+    if (line.starts_with("~history-end "))
+        return "── end of history ──";
+    if (line.starts_with("~history ")) {
+        // "~history <unix seconds> <sender>: <body>"
+        std::string rest = line.substr(9);
+        auto space = rest.find(' ');
+        if (space != std::string::npos) {
+            std::time_t when = std::strtoll(rest.substr(0, space).c_str(), nullptr, 10);
+            char stamp[32];
+            std::strftime(stamp, sizeof(stamp), "%Y-%m-%d %H:%M", std::localtime(&when));
+            return std::string("[") + stamp + "] " + rest.substr(space + 1);
+        }
+    }
+    return line;
+}
 
 void receive_messages(int clientSocket) {
     char buffer[1024];
+    Protocol::LineBuffer lines;
     while (true) {
-        memset(buffer, 0, sizeof(buffer));
-        int bytes = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-        
+        int bytes = recv(clientSocket, buffer, sizeof(buffer), 0);
+
         if (bytes > 0) {
-            std::cout << "\r" << std::string(buffer, bytes) << "> " << std::flush;
-        } 
+            lines.append(buffer, bytes);
+            while (auto line = lines.nextLine())
+                std::cout << "\r" << displayLine(*line) << "\n";
+            std::cout << "> " << std::flush;
+        }
         else if (bytes == 0) {
             std::cout << "\n[Server closed connection]" << std::endl;
             break;
-        } 
+        }
         else {
-            break; 
+            break;
         }
     }
 }
@@ -50,7 +81,7 @@ int main() {
     }
 
     std::cout << "--- Connected to Chat Server ---" << std::endl;
-    std::cout << "Commands: /help to list all commands, /nick <name>, /join <room>, /rooms to list active rooms, or /quit to exit." << std::endl;
+    std::cout << "Commands: /help to list all commands, /nick <name>, /join <room>, /rooms to list active rooms, /history to show this room's recent messages, or /quit to exit." << std::endl;
 
     std::thread receiveThread(receive_messages, sock);
     receiveThread.detach();
@@ -63,6 +94,8 @@ int main() {
         }
 
         if (input.empty()) continue;
+        // The server reads newline-terminated lines.
+        input += '\n';
         if (send(sock, input.c_str(), input.length(), 0) == -1) {
             std::cerr << "Failed to send message." << std::endl;
             break;

@@ -1,6 +1,7 @@
 #ifndef CONNECTIONHANDLER_HPP
 #define CONNECTIONHANDLER_HPP
 
+#include <mutex>
 #include <string>
 
 class ConnectionHandler {
@@ -17,6 +18,9 @@ private:
     int clientSocket;
     std::string clientLabel;
     std::string currentRoom;
+    // Several threads can send to one client at once (its own replies and
+    // other clients' broadcasts), so writes to the socket are serialized.
+    std::mutex sendMutex;
 };
 
 #endif

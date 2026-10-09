@@ -27,6 +27,7 @@ void ChatClient::connectToServer(const QString& host, quint16 port) {
     m_room = QStringLiteral("lobby");
     m_state = State::Normal;
     m_accumulator.clear();
+    m_queuedLists.clear();
     m_readBuffer.clear();
     m_socket->connectToHost(host, port);
 }
@@ -71,21 +72,40 @@ void ChatClient::setNickname(const QString& nick) {
 void ChatClient::joinRoom(const QString& room) {
     m_pendingRoom = room.trimmed();
     rawSend(QStringLiteral("/join ") + m_pendingRoom);
+    // The server handles lines in order, so this returns the new room's history.
+    requestHistory();
+}
+
+void ChatClient::requestHistory() {
+    rawSend(QStringLiteral("/history"));
 }
 
 void ChatClient::requestWho() {
-    if (m_state == State::WhoList) return;
-    m_state = State::WhoList;
-    m_accumulator.clear();
-    m_collectTimer->start();
-    rawSend(QStringLiteral("/who"));
+    startListRequest(State::WhoList);
 }
 
 void ChatClient::requestRooms() {
-    if (m_state == State::RoomList) return;
-    m_state = State::RoomList;
+    startListRequest(State::RoomList);
+}
+
+// /who and /rooms replies are plain lists with no end marker, so only one can
+// be collected at a time. Starting a second while the first is in flight used
+// to throw the first reply away; now it waits its turn.
+void ChatClient::startListRequest(State list) {
+    if (m_state != State::Normal) {
+        if (m_state != list && !m_queuedLists.contains(list))
+            m_queuedLists.enqueue(list);
+        return;
+    }
+    m_state = list;
     m_accumulator.clear();
-    rawSend(QStringLiteral("/rooms"));
+    m_collectTimer->start();
+    rawSend(list == State::WhoList ? QStringLiteral("/who") : QStringLiteral("/rooms"));
+}
+
+void ChatClient::sendNextQueuedList() {
+    if (!m_queuedLists.isEmpty())
+        startListRequest(m_queuedLists.dequeue());
 }
 
 void ChatClient::requestHelp() {
@@ -100,6 +120,7 @@ void ChatClient::onDisconnected() {
     m_collectTimer->stop();
     m_state = State::Normal;
     m_accumulator.clear();
+    m_queuedLists.clear();
     emit disconnectedFromServer();
 }
 
@@ -126,7 +147,58 @@ void ChatClient::onCollectTimeout() {
         flushRoomList();
 }
 
+// Handles the server's reply to /history:
+//   ~history-begin <more> <room>
+//   ~history <unix seconds> <sender>: <body>
+//   ~history-end <room>
+// Returns false if the line isn't part of a history reply.
+bool ChatClient::processHistoryLine(const QString& line) {
+    if (line.startsWith(QLatin1String("~history-begin "))) {
+        QString rest = line.mid(15);
+        bool more = rest.startsWith(QLatin1Char('1'));
+        QString room = rest.mid(2);
+        // The history reply is the server confirming which room we're in.
+        m_echoQueue.clear();
+        if (room != m_room) {
+            m_room = room;
+            emit roomChanged(m_room);
+        }
+        if (room == m_pendingRoom)
+            m_pendingRoom.clear();
+        emit historyStarted(room, more);
+        return true;
+    }
+    if (line.startsWith(QLatin1String("~history-end "))) {
+        emit historyFinished(line.mid(13));
+        return true;
+    }
+    if (line.startsWith(QLatin1String("~history "))) {
+        QString rest = line.mid(9);
+        qsizetype space = rest.indexOf(QLatin1Char(' '));
+        qsizetype colon = rest.indexOf(QLatin1String(": "), space + 1);
+        if (space <= 0 || colon <= space)
+            return true;  // malformed; ignore it rather than show protocol text
+        QDateTime sentAt = QDateTime::fromSecsSinceEpoch(rest.left(space).toLongLong());
+        QString sender = rest.mid(space + 1, colon - space - 1);
+        QString text = rest.mid(colon + 2);
+        // The nickname may still be pending right after connecting.
+        bool isOwn = (!m_nickname.isEmpty() && sender == m_nickname) ||
+                     (!m_pendingNick.isEmpty() && sender == m_pendingNick);
+        emit historyMessage(sender, text, sentAt, isOwn);
+        return true;
+    }
+    return false;
+}
+
 void ChatClient::processLine(const QString& line) {
+    if (line.startsWith(QLatin1Char('~'))) {
+        // A history reply means any /who or /rooms listing has finished.
+        if (m_state == State::WhoList) flushWhoList();
+        else if (m_state == State::RoomList) flushRoomList();
+        if (processHistoryLine(line))
+            return;
+    }
+
     // ── Room list: header triggers collection ──────────────────────────────
     if (line.startsWith(QLatin1String("active rooms:"))) {
         if (m_state == State::WhoList) flushWhoList();
@@ -236,6 +308,7 @@ void ChatClient::flushWhoList() {
     emit userListUpdated(m_accumulator);
     m_accumulator.clear();
     m_state = State::Normal;
+    sendNextQueuedList();
 }
 
 void ChatClient::flushRoomList() {
@@ -243,6 +316,7 @@ void ChatClient::flushRoomList() {
     emit roomListUpdated(m_accumulator);
     m_accumulator.clear();
     m_state = State::Normal;
+    sendNextQueuedList();
 }
 
 void ChatClient::rawSend(const QString& text) {

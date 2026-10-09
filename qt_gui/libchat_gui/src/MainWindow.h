@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDate>
+#include <QDateTime>
 #include <QMainWindow>
 #include <QStringList>
 #include <QTime>
@@ -33,6 +34,9 @@ private slots:
     void onNicknameChanged(const QString& nick);
     void onRoomChanged(const QString& room);
     void onConnectionError(const QString& error);
+    void onHistoryStarted(const QString& room, bool more);
+    void onHistoryMessage(const QString& sender, const QString& text,
+                          const QDateTime& sentAt, bool isOwn);
     void onSendClicked();
     void onInputReturnPressed();
     void openSettings();
@@ -49,7 +53,9 @@ private:
     void addRoomItem(const QString& room);
     void scrollChatToBottom();
 
-    void appendBubble(const QString& sender, const QString& text, bool isOwn);
+    void appendBubble(const QString& sender, const QString& text, bool isOwn,
+                      const QDateTime& sentAt = QDateTime::currentDateTime());
+    void clearChat();
     void appendSystem(const QString& text);
     void appendDayDivider(const QDate& date);
 

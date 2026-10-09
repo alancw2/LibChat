@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QDateTime>
 #include <QObject>
 #include <QQueue>
 #include <QString>
@@ -21,6 +22,8 @@ public:
     void requestWho();
     void requestRooms();
     void requestHelp();
+    // Asks the server for the current room's recent messages.
+    void requestHistory();
 
     bool isConnected() const;
     QString nickname() const { return m_nickname; }
@@ -38,6 +41,12 @@ signals:
     void nicknameChanged(const QString& nick);
     void roomChanged(const QString& room);
     void connectionError(const QString& error);
+    // A room's history is about to be sent: the view should show only this
+    // room from now on. `more` is true if older messages weren't included.
+    void historyStarted(const QString& room, bool more);
+    void historyMessage(const QString& sender, const QString& text,
+                        const QDateTime& sentAt, bool isOwn);
+    void historyFinished(const QString& room);
 
 private slots:
     void onConnected();
@@ -50,9 +59,12 @@ private:
     enum class State { Normal, WhoList, RoomList };
 
     void processLine(const QString& line);
+    bool processHistoryLine(const QString& line);
     void flushWhoList();
     void flushRoomList();
     void rawSend(const QString& text);
+    void startListRequest(State list);
+    void sendNextQueuedList();
 
     QTcpSocket* m_socket;
     QTimer* m_collectTimer;
@@ -65,6 +77,7 @@ private:
     QString m_pendingRoom;
     State m_state{State::Normal};
     QStringList m_accumulator;
+    QQueue<State> m_queuedLists;
 
     // FIFO of texts we sent ourselves; used to suppress the server echo
     // so the GUI can show messages immediately without a duplicate.

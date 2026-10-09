@@ -10,6 +10,7 @@ build/
 server
 client
 client_tui
+/tests
 
 # ── Qt generated / user-local files ─────────────────────────────────
 *.pro.user
@@ -37,3 +38,8 @@ _deps/
 *~
 .DS_Store
 Thumbs.db
+
+# ── Chat history databases ──────────────────────────────────────────
+*.db
+*.db-wal
+*.db-shm

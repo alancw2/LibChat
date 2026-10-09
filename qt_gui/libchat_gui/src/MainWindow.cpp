@@ -167,9 +167,12 @@ void MainWindow::buildSidebar() {
     m_roomList->setObjectName(QStringLiteral("roomList"));
     m_roomList->setFocusPolicy(Qt::NoFocus);
     m_roomList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    connect(m_roomList, &QListWidget::itemDoubleClicked, this,
+    // One click switches rooms, like channels in Discord.
+    connect(m_roomList, &QListWidget::itemClicked, this,
             [this](QListWidgetItem* item) {
-                m_client->joinRoom(item->data(Qt::UserRole).toString());
+                QString room = item->data(Qt::UserRole).toString();
+                if (m_client->isConnected() && room != m_client->currentRoom())
+                    m_client->joinRoom(room);
             });
     addRoomItem(QStringLiteral("lobby"));
     lay->addWidget(m_roomList, 1);
@@ -370,6 +373,12 @@ void MainWindow::connectClientSignals() {
             this, &MainWindow::onRoomChanged);
     connect(m_client, &ChatClient::connectionError,
             this, &MainWindow::onConnectionError);
+    connect(m_client, &ChatClient::historyStarted,
+            this, &MainWindow::onHistoryStarted);
+    connect(m_client, &ChatClient::historyMessage,
+            this, &MainWindow::onHistoryMessage);
+    connect(m_client, &ChatClient::historyFinished,
+            this, [this](const QString&) { scrollChatToBottom(); });
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -382,9 +391,13 @@ void MainWindow::onConnected() {
                      .arg(m_client->serverHost())
                      .arg(m_client->serverPort()));
 
-    // Prompt for a nickname so the server never sees "IP:port" as the label.
-    // Deferred slightly so the connection signal chain finishes first.
-    QTimer::singleShot(150, this, &MainWindow::promptForNickname);
+    // Prompt for a nickname so the server never sees "IP:port" as the label,
+    // then load the room's history (after the prompt, so our own past
+    // messages are recognised). Deferred so the connection signals finish first.
+    QTimer::singleShot(150, this, [this]() {
+        promptForNickname();
+        m_client->requestHistory();
+    });
 
     QTimer::singleShot(800, m_client, &ChatClient::requestRooms);
     QTimer::singleShot(1000, m_client, &ChatClient::requestWho);
@@ -445,6 +458,7 @@ void MainWindow::onRoomChanged(const QString& room) {
     m_selfRoomLabel->setText(QLatin1Char('#') + room);
     m_messageInput->setPlaceholderText(tr("Message #%1").arg(room));
     m_headerRoomLabel->setText(room);
+    updateStatusBar();
 
     for (int i = 0; i < m_roomList->count(); ++i) {
         if (m_roomList->item(i)->data(Qt::UserRole).toString() == room) {
@@ -454,7 +468,20 @@ void MainWindow::onRoomChanged(const QString& room) {
     }
     addRoomItem(room);
     m_roomList->setCurrentRow(m_roomList->count() - 1);
-    updateStatusBar();
+}
+
+void MainWindow::onHistoryStarted(const QString& room, bool more) {
+    // Everything on screen belongs to the previous room (or a stale view),
+    // so start over with just this room's messages.
+    clearChat();
+    // The server keeps messages for 24 hours (ChatHistory's default retention).
+    appendSystem(more ? tr("Showing the most recent messages in #%1.").arg(room)
+                      : tr("#%1 — messages from the last 24 hours.").arg(room));
+}
+
+void MainWindow::onHistoryMessage(const QString& sender, const QString& text,
+                                  const QDateTime& sentAt, bool isOwn) {
+    appendBubble(sender, text, isOwn, sentAt.toLocalTime());
 }
 
 void MainWindow::onConnectionError(const QString& error) {
@@ -580,24 +607,23 @@ void MainWindow::scrollChatToBottom() {
 
 // ── Message rendering ─────────────────────────────────────────────────────────
 
-void MainWindow::appendBubble(const QString& sender,
-                               const QString& text, bool isOwn) {
-    QDateTime now = QDateTime::currentDateTime();
-    QDate today   = now.date();
+void MainWindow::appendBubble(const QString& sender, const QString& text,
+                               bool isOwn, const QDateTime& sentAt) {
+    QDate day = sentAt.date();
 
-    if (today != m_lastMsgDate) {
-        appendDayDivider(today);
-        m_lastMsgDate = today;
+    if (day != m_lastMsgDate) {
+        appendDayDivider(day);
+        m_lastMsgDate = day;
         m_lastSender.clear();
     }
 
     // Always show the sender name — never suppress it between grouped messages.
     auto* bubble = new MessageBubble(
-        sender, text, isOwn, now.time(), /*showSender=*/true, m_chatContent);
+        sender, text, isOwn, sentAt.time(), /*showSender=*/true, m_chatContent);
     m_chatLayout->addWidget(bubble);
 
     m_lastSender  = sender;
-    m_lastMsgTime = now.time();
+    m_lastMsgTime = sentAt.time();
 
     scrollChatToBottom();
 }
@@ -609,10 +635,26 @@ void MainWindow::appendSystem(const QString& text) {
     scrollChatToBottom();
 }
 
+void MainWindow::clearChat() {
+    // Index 0 is the stretch that keeps messages at the bottom; keep it.
+    while (m_chatLayout->count() > 1) {
+        QLayoutItem* item = m_chatLayout->takeAt(1);
+        if (QWidget* w = item->widget()) {
+            w->hide();  // deleteLater only runs once control returns to the event loop
+            w->deleteLater();
+        }
+        delete item;
+    }
+    m_lastSender.clear();
+    m_lastMsgDate = QDate();
+    m_lastMsgTime = QTime();
+}
+
 void MainWindow::appendDayDivider(const QDate& date) {
-    QString label = (date == QDate::currentDate())
-                        ? tr("Today")
-                        : QLocale().toString(date, QLocale::LongFormat);
+    QDate today = QDate::currentDate();
+    QString label = date == today              ? tr("Today")
+                  : date == today.addDays(-1)  ? tr("Yesterday")
+                  : QLocale().toString(date, QLocale::LongFormat);
     auto* w = new DayDividerWidget(label, m_chatContent);
     m_chatLayout->addWidget(w);
 }

@@ -15,13 +15,13 @@ void Commands::joinNewRoom(std::shared_ptr<ConnectionHandler> conn, std::string&
         conn->changeRoom(newRoom);
     }
 }
-void Commands::setNewNickname(std::shared_ptr<ConnectionHandler> conn, std::string& newNick) {
+bool Commands::setNewNickname(std::shared_ptr<ConnectionHandler> conn, std::string& newNick) {
     if (std::regex_match(newNick, Config::APP_NICKNAME_PATTERN)) {
         conn->setClientLabel(newNick);
-    } else {
-        std::cerr << "1 - nickname change fail (bad nickname)" << std::endl;
-        
+        return true;
     }
+    std::cerr << "1 - nickname change fail (bad nickname)" << std::endl;
+    return false;
 }
 std::string Commands::getUsersInRoom(std::shared_ptr<ConnectionHandler> conn, std::vector<std::shared_ptr<ConnectionHandler>>& connections) {
     std::string users = "";
@@ -54,6 +54,6 @@ void Commands::showRooms(std::shared_ptr<ConnectionHandler> conn, std::vector<st
 	}
 }
 void Commands::showCommands(std::shared_ptr<ConnectionHandler> conn) {
-    conn->sendMessage("Commands: /help to list all commands, /nick <name>, /join <room>, /rooms to list active rooms, or /quit to exit.\n");
+    conn->sendMessage("Commands: /help to list all commands, /nick <name>, /join <room>, /rooms to list active rooms, /history to show this room's recent messages, or /quit to exit.\n");
 }
 
